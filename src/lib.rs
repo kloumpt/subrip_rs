@@ -34,7 +34,7 @@ impl SubtitleSequence {
 	pub fn lines(&self) -> &str{
 		&self.lines
 	}
-	
+
 	pub fn to_string(&self) -> String { format!("{}\n{} -->{}\n{}\n", self.number, self.begin_time.strftime("%H:%M:%S,%f").unwrap(), self.end_time.strftime("%H:%M:%S,%f").unwrap(), self.lines) }
 }
 
@@ -78,9 +78,13 @@ pub fn from_file(subtitle_file: &File) -> Vec<SubtitleSequence> {
 				} else {
 					state = match state {
 						SRTParserState::SeekNumber => {
-							number = Option::Some(line.parse::<u32>()
-							                          .expect("Invalid subtitle sequence number"));
-
+							number = match line.parse::<u32>() {
+								Ok(value)=>Option::Some(value),
+								Err(e)=>{
+									println!("Waning: Invalid subtitle sequence number for {} ({})", line, e);
+									None
+								}
+							};
 							SRTParserState::SeekTime
 						},
 						SRTParserState::SeekTime => {
@@ -88,9 +92,21 @@ pub fn from_file(subtitle_file: &File) -> Vec<SubtitleSequence> {
 							let begin_time_as_string = fields[0].trim().replace(".", ",");
 							let end_time_as_string = fields[1].trim().replace(".", ",");
 
-							begin_time = Option::Some(time::strptime(&begin_time_as_string, "%H:%M:%S,%f").expect(&format!("Invalid subtitle begin time for {}", begin_time_as_string)));
-							end_time = Option::Some(time::strptime(&end_time_as_string, "%H:%M:%S,%f").expect(&format!("Invalid subtitle end time for {}", end_time_as_string)));
-
+							begin_time = match time::strptime(&begin_time_as_string, "%H:%M:%S,%f"){
+								Ok(value)=>Option::Some(value),
+								Err(e)=>{
+									println!("Waning: Invalid subtitle begin time for {} ({})", begin_time_as_string, e);
+									None
+								}
+							};
+							end_time = match time::strptime(&end_time_as_string, "%H:%M:%S,%f"){
+								Ok(value)=>Option::Some(value),
+								Err(e)=>{
+									println!("Waning: Invalid subtitle end time for {} ({})", begin_time_as_string, e);
+									None
+								}
+							};
+							
 							SRTParserState::SeekText(2u32)
 						},
 						SRTParserState::SeekText(0u32) => state,
