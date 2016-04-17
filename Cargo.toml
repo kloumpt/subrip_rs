@@ -1,0 +1,8 @@
+[package]
+name = "subrip"
+version = "0.1.0"
+authors = ["kloumpt <serge.molina+git@kloumpt.net>"]
+
+[dependencies]
+chrono =  "0.2.21"
+time = "0.1"
