@@ -78,36 +78,44 @@ pub fn from_file(subtitle_file: &File) -> Vec<SubtitleSequence> {
 				} else {
 					state = match state {
 						SRTParserState::SeekNumber => {
-							number = match line.parse::<u32>() {
-								Ok(value)=>Option::Some(value),
+							match line.trim().parse::<u32>() {
+								Ok(value)=>{
+									number=Option::Some(value);
+									SRTParserState::SeekTime
+								},
 								Err(e)=>{
 									println!("Waning: Invalid subtitle sequence number for {} ({})", line, e);
-									None
+									SRTParserState::SeekNumber
 								}
-							};
-							SRTParserState::SeekTime
+							}
+
 						},
 						SRTParserState::SeekTime => {
 							let fields: Vec<&str> = line.split("-->").collect();
-							let begin_time_as_string = fields[0].trim().replace(".", ",");
-							let end_time_as_string = fields[1].trim().replace(".", ",");
+							if fields.len() == 2 {
+								let begin_time_as_string = fields[0].trim().replace(".", ",");
+								let end_time_as_string = fields[1].trim().replace(".", ",");
 
-							begin_time = match time::strptime(&begin_time_as_string, "%H:%M:%S,%f"){
-								Ok(value)=>Option::Some(value),
-								Err(e)=>{
-									println!("Waning: Invalid subtitle begin time for {} ({})", begin_time_as_string, e);
-									None
-								}
-							};
-							end_time = match time::strptime(&end_time_as_string, "%H:%M:%S,%f"){
-								Ok(value)=>Option::Some(value),
-								Err(e)=>{
-									println!("Waning: Invalid subtitle end time for {} ({})", begin_time_as_string, e);
-									None
-								}
-							};
-							
-							SRTParserState::SeekText(2u32)
+								begin_time = match time::strptime(&begin_time_as_string, "%H:%M:%S,%f"){
+									Ok(value)=>Option::Some(value),
+									Err(e)=>{
+										println!("Waning: Invalid subtitle begin time for {} ({})", begin_time_as_string, e);
+										None
+									}
+								};
+								end_time = match time::strptime(&end_time_as_string, "%H:%M:%S,%f"){
+									Ok(value)=>Option::Some(value),
+									Err(e)=>{
+										println!("Waning: Invalid subtitle end time for {} ({})", begin_time_as_string, e);
+										None
+									}
+								};
+
+								SRTParserState::SeekText(2u32)
+							} else {
+								println!("Waning: Not enough time stamps for header {} ", line);
+								SRTParserState::SeekNumber
+							}
 						},
 						SRTParserState::SeekText(0u32) => state,
 						SRTParserState::SeekText(allowed_lines) => {
